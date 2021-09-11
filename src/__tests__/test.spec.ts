@@ -1,4 +1,4 @@
-import { ExcelTemplate } from "../ExcelTemplate";
+import { ExcelTemplate } from "../index";
 import { writeFileSync } from "fs";
 import { pathToFileURL } from "url";
 import { join } from "path";

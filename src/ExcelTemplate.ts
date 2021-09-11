@@ -1,5 +1,4 @@
 import { Column, Row, Workbook } from "exceljs";
-import { readFile } from "fs";
 import { template } from "lodash";
 import { BinarySource, Converter, dataUrlToBase64 } from "univ-conv";
 
@@ -23,6 +22,8 @@ interface ExcelTemplateOptions {
 }
 
 export class ExcelTemplate {
+  public static readFile: (path: string) => Promise<Buffer>;
+
   private converter: Converter;
   private options: ExcelTemplateOptions;
 
@@ -133,7 +134,7 @@ export class ExcelTemplate {
       const fetched = await fetch(url.href);
       return fetched.arrayBuffer();
     } else if (proto === "file:") {
-      return this.readFile(url.pathname);
+      return ExcelTemplate.readFile(url.pathname);
     } else if (proto === "data:") {
       const base64 = dataUrlToBase64(url.href);
       return this.converter.toArrayBuffer({
@@ -142,17 +143,5 @@ export class ExcelTemplate {
       });
     }
     throw new Error("Unknown protocol: " + url.protocol);
-  }
-
-  private async readFile(path: string): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
-      readFile(path, (err, buffer) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(buffer);
-      });
-    });
   }
 }

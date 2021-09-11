@@ -1,7 +1,7 @@
 module.exports = {
   mode: "development",
   entry: {
-    index: "./src/index.ts",
+    index: "./src/index-browser.ts",
   },
   output: {
     filename: "[name].js",
