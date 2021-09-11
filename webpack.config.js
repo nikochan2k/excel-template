@@ -4,7 +4,7 @@ module.exports = {
     index: "./src/index-browser.ts",
   },
   output: {
-    filename: "excel-template.js",
+    filename: "excel-templator.js",
     path: __dirname + "/dist",
     libraryTarget: "umd",
     globalObject: "this",

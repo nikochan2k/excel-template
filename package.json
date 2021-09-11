@@ -1,6 +1,6 @@
 {
-  "name": "excel-template",
-  "version": "0.0.2",
+  "name": "excel-templator",
+  "version": "0.0.0",
   "description": "Excel template",
   "browser": "lib/index-browser.js",
   "main": "lib/index.js",

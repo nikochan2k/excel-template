@@ -1,4 +1,4 @@
-import { ExcelTemplate } from "../index";
+import { ExcelTemplator } from "../index";
 import { writeFileSync } from "fs";
 import { pathToFileURL } from "url";
 import { join } from "path";
@@ -6,7 +6,7 @@ import { join } from "path";
 test("test1", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplate(url.href);
+  const template = new ExcelTemplator(url.href);
   const ab = await template.generate({
     data1: "fuga",
     data2: "hoge",
@@ -21,7 +21,7 @@ test("test1", async () => {
 test("test2", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplate(url.href);
+  const template = new ExcelTemplator(url.href);
   const imgPath = join(__dirname, "test.jpg");
   const imgUrl = pathToFileURL(imgPath);
   imgUrl.hash = "#embed";
@@ -40,7 +40,7 @@ test("test2", async () => {
 test("test3", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplate(url.href);
+  const template = new ExcelTemplator(url.href);
   const imgPath = join(__dirname, "test.jpg");
   const imgUrl = pathToFileURL(imgPath);
   const ab = await template.generate({

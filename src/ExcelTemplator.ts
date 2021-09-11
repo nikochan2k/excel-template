@@ -21,7 +21,7 @@ interface ExcelTemplateOptions {
   debug?: boolean;
 }
 
-export class ExcelTemplate {
+export class ExcelTemplator {
   public static readFile: (path: string) => Promise<Buffer>;
 
   private converter: Converter;
@@ -134,7 +134,7 @@ export class ExcelTemplate {
       const fetched = await fetch(url.href);
       return fetched.arrayBuffer();
     } else if (proto === "file:") {
-      return ExcelTemplate.readFile(url.pathname);
+      return ExcelTemplator.readFile(url.pathname);
     } else if (proto === "data:") {
       const base64 = dataUrlToBase64(url.href);
       return this.converter.toArrayBuffer({

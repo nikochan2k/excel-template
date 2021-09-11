@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>Excel Template test</title>
-    <script src="dist/excel-template.js"></script>
+    <script src="dist/excel-templator.js"></script>
   </head>
   <body>
     <h1>Excel Template test</h1>
@@ -41,7 +41,7 @@
           return;
         }
         const templateUrl = URL.createObjectURL(file);
-        const template = new ExcelTemplate(templateUrl);
+        const template = new ExcelTemplator(templateUrl);
         const buffer = await template.generate(data);
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);

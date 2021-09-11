@@ -1,8 +1,8 @@
-import { ExcelTemplate } from "./ExcelTemplate";
+import { ExcelTemplator } from "./ExcelTemplator";
 import { readFile } from "fs";
 import "isomorphic-fetch";
 
-ExcelTemplate.readFile = (path: string): Promise<Buffer> => {
+ExcelTemplator.readFile = (path: string): Promise<Buffer> => {
   return new Promise<Buffer>((resolve, reject) => {
     readFile(path, (err, buffer) => {
       if (err) {
@@ -14,4 +14,4 @@ ExcelTemplate.readFile = (path: string): Promise<Buffer> => {
   });
 };
 
-export * from "./ExcelTemplate";
+export * from "./ExcelTemplator";

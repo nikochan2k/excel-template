@@ -1,7 +1,7 @@
-import { ExcelTemplate } from "./ExcelTemplate";
+import { ExcelTemplator } from "./ExcelTemplator";
 
-ExcelTemplate.readFile = (_path: string): Promise<Buffer> => {
+ExcelTemplator.readFile = (_path: string): Promise<Buffer> => {
   throw new Error("file protocol is not supported");
 };
 
-export * from "./ExcelTemplate";
+export * from "./ExcelTemplator";
