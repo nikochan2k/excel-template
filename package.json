@@ -24,9 +24,11 @@
     "test": "jest --runInBand",
     "web-clean": "rimraf ./dist",
     "web-compile": "webpack",
+    "web-test-compile": "webpack -c ./webpack-dev.config.js",
     "web-build": "npm-run-all web-clean web-compile",
+    "web-test-build": "npm-run-all web-clean web-test-compile",
     "karma": "karma start",
-    "web-test": "npm-run-all web-build karma"
+    "web-test": "npm-run-all web-test-build karma"
   },
   "jest": {
     "moduleFileExtensions": [
