@@ -1,5 +1,5 @@
 import { Column, Row, Workbook } from "exceljs";
-import * as fs from "fs";
+import { readFile } from "fs";
 import { template } from "lodash";
 import { BinarySource, Converter, dataUrlToBase64 } from "univ-conv";
 
@@ -18,6 +18,7 @@ interface Target {
 }
 
 interface ExcelTemplateOptions {
+  forceEmbed?: boolean;
   debug?: boolean;
 }
 
@@ -29,12 +30,9 @@ export class ExcelTemplate {
     public xlsx: string | BinarySource,
     options?: ExcelTemplateOptions
   ) {
-    if (!options) {
-      options = {};
-    }
-    if (options.debug == null) {
-      options.debug = false;
-    }
+    if (!options) options = {};
+    if (options.debug == null) options.debug = false;
+    if (options.forceEmbed == null) options.forceEmbed = false;
     this.options = options;
     this.converter = new Converter();
   }
@@ -94,7 +92,7 @@ export class ExcelTemplate {
         try {
           if (URL_REGEXP.test(text)) {
             const url = new URL(text);
-            if (url.hash === "#embed") {
+            if (this.options.forceEmbed || url.hash === "#embed") {
               const lastIndex = url.pathname.lastIndexOf(".");
               let extension = url.pathname.substr(lastIndex + 1);
               if (extension === "jpg") extension = "jpeg";
@@ -148,7 +146,7 @@ export class ExcelTemplate {
 
   private async readFile(path: string): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
-      fs.readFile(path, (err, buffer) => {
+      readFile(path, (err, buffer) => {
         if (err) {
           reject(err);
           return;
