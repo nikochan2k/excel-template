@@ -43,8 +43,7 @@
         const templateUrl = URL.createObjectURL(file);
         const template = new ExcelTemplate(templateUrl);
         const buffer = await template.generate(data);
-        const converter = new Converter();
-        const blob = await converter.toBlob(buffer);
+        const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = "output.xlsx";
