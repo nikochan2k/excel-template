@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <title>Excel Template test</title>
+    <script src="dist/excel-template.js"></script>
+  </head>
+  <body>
+    <h1>Excel Template test</h1>
+    <p>
+      <label for="data"> Please input JSON data.</label>
+      <textarea id="data" name="data" style="width: 400; height: 300">
+{
+  "data1": "fuga",
+  "data2": "hoge",
+  "data3": "foo",
+  "data4": "http://localhost:8080/src/__tests__/test.jpg#embed"
+}
+    </textarea
+      >
+    </p>
+    <p>
+      <label for="files"> Please select a Excel file.</label>
+      <input type="file" id="files" name="files" />
+    </p>
+    <script>
+      async function handleFileSelect(evt) {
+        const dataEle = document.getElementById("data");
+        const dataStr = dataEle.value;
+        try {
+          var data = JSON.parse(dataStr);
+        } catch (e) {
+          console.warn(e);
+          alert("Invalid JSON data");
+          return;
+        }
+        const files = evt.target.files;
+        if (files.length === 0) {
+          return;
+        }
+        const file = files[0];
+        if (!file.name.endsWith(".xlsx")) {
+          return;
+        }
+        const templateUrl = URL.createObjectURL(file);
+        const template = new ExcelTemplate(templateUrl);
+        const buffer = await template.generate(data);
+        const converter = new Converter();
+        const blob = await converter.toBlob(buffer);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "output.xlsx";
+        link.href = url;
+        link.click();
+      }
+
+      document
+        .getElementById("files")
+        .addEventListener("change", handleFileSelect, false);
+    </script>
+  </body>
+</html>
