@@ -1,6 +1,7 @@
 <html>
   <head>
     <title>Excel Template test</title>
+    <meta charset="utf-8" />
     <script src="dist/excel-templator.js"></script>
   </head>
   <body>
@@ -40,8 +41,7 @@
         if (!file.name.endsWith(".xlsx")) {
           return;
         }
-        const templateUrl = URL.createObjectURL(file);
-        const template = new ExcelTemplator(templateUrl);
+        const template = new ExcelTemplator(file);
         const buffer = await template.generate(data);
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
@@ -49,6 +49,7 @@
         link.download = "output.xlsx";
         link.href = url;
         link.click();
+        evt.target.velue = "";
       }
 
       document
