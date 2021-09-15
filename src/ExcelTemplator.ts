@@ -4,7 +4,7 @@ import { BinarySource, Converter, dataUrlToBase64 } from "univ-conv";
 
 const EXPR_REGEXP = /<%[^%]+%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
-const IMAGE_EXTENSIONS = /^(jpg|jpeg|png|gif)$/;
+const IMAGE_EXTENSIONS = /^(jpg|jpeg|png|gif)$/i;
 
 interface CellIndex {
   row: number;
@@ -21,10 +21,11 @@ interface ExcelTemplateOptions {
   debug?: boolean;
 }
 
+const converter = new Converter();
+
 export class ExcelTemplator {
   public static readFile: (path: string) => Promise<Buffer>;
 
-  private converter: Converter;
   private options: ExcelTemplateOptions;
 
   constructor(
@@ -35,7 +36,6 @@ export class ExcelTemplator {
     if (options.debug == null) options.debug = false;
     if (options.forceEmbed == null) options.forceEmbed = false;
     this.options = options;
-    this.converter = new Converter();
   }
 
   public async generate(data: any): Promise<ArrayBuffer> {
@@ -45,12 +45,12 @@ export class ExcelTemplator {
       const url = new URL(urlLike);
       buffer = await this.fetchURL(url);
     } else {
-      buffer = await this.converter.toArrayBuffer(this.xlsx);
+      buffer = await converter.toArrayBuffer(this.xlsx);
     }
 
     const workbook = new Workbook();
     await workbook.xlsx.load(buffer);
-    for (const ws of workbook.worksheets) {
+    outer: for (const ws of workbook.worksheets) {
       const targetMap: { [key: string]: Target } = {};
       const lastRow = ws.lastRow as Row;
       for (
@@ -95,7 +95,7 @@ export class ExcelTemplator {
             const url = new URL(text);
             if (this.options.forceEmbed || url.hash === "#embed") {
               const lastIndex = url.pathname.lastIndexOf(".");
-              let extension = url.pathname.substr(lastIndex + 1);
+              let extension = url.pathname.substr(lastIndex + 1).toLowerCase();
               if (extension === "jpg") extension = "jpeg";
               if (IMAGE_EXTENSIONS.test(extension)) {
                 const buffer = await this.fetchURL(url);
@@ -109,6 +109,7 @@ export class ExcelTemplator {
                   br: target.br as any,
                 });
               }
+              continue outer;
             }
           }
         } catch (e) {
@@ -137,7 +138,7 @@ export class ExcelTemplator {
       return ExcelTemplator.readFile(url.pathname);
     } else if (proto === "data:") {
       const base64 = dataUrlToBase64(url.href);
-      return this.converter.toArrayBuffer({
+      return converter.toArrayBuffer({
         encoding: "Base64",
         value: base64,
       });
