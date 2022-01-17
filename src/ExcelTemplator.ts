@@ -90,6 +90,8 @@ export class ExcelTemplator {
 
       for (const [address, target] of Object.entries(targetMap)) {
         const text = target.text || "";
+        const cell = ws.getCell(address);
+        const value: any = cell.value;
         try {
           if (URL_REGEXP.test(text)) {
             const url = new URL(text);
@@ -117,6 +119,8 @@ export class ExcelTemplator {
                   br: target.br as any,
                 });
               }
+
+              value.text = "";
               continue;
             }
           }
@@ -124,8 +128,6 @@ export class ExcelTemplator {
           console.warn(e);
         }
 
-        const cell = ws.getCell(address);
-        const value: any = cell.value;
         if (value.font) {
           value.text = text;
         } else {
