@@ -117,7 +117,7 @@ export class ExcelTemplator {
                   br: target.br as any,
                 });
               }
-              continue outer;
+              continue;
             }
           }
         } catch (e) {
