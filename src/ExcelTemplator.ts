@@ -1,6 +1,6 @@
 import { Column, Row, Workbook } from "exceljs";
 import { template } from "lodash";
-import { BinarySource, Converter, dataUrlToBase64 } from "univ-conv";
+import { BinaryData, Converter, dataUrlToBase64 } from "univ-conv";
 
 const EXPR_REGEXP = /<%[^%]+%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
@@ -29,7 +29,7 @@ export class ExcelTemplator {
   private options: ExcelTemplateOptions;
 
   constructor(
-    public xlsx: string | BinarySource,
+    public xlsx: string | BinaryData,
     options?: ExcelTemplateOptions
   ) {
     if (!options) options = {};
@@ -94,16 +94,24 @@ export class ExcelTemplator {
           if (URL_REGEXP.test(text)) {
             const url = new URL(text);
             if (this.options.forceEmbed || url.hash === "#embed") {
-              const lastIndex = url.pathname.lastIndexOf(".");
-              let extension = url.pathname.substr(lastIndex + 1).toLowerCase();
-              if (extension === "jpg") extension = "jpeg";
+              const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
+              console.log(res);
+              let extension: "jpeg" | "png" | "gif";
+              if (!res) {
+                extension = "png";
+              } else {
+                let ext = res[1]?.toLowerCase();
+                if (ext === "jpg" || ext === "jpeg") {
+                  extension = "jpeg";
+                } else if (ext === "gif") {
+                  extension = "gif";
+                } else {
+                  extension = "png";
+                }
+              }
               if (IMAGE_EXTENSIONS.test(extension)) {
                 const buffer = await this.fetchURL(url);
-                const imageId = workbook.addImage({
-                  buffer,
-                  extension: extension as any,
-                });
-
+                const imageId = workbook.addImage({ buffer, extension });
                 ws.addImage(imageId, {
                   tl: { row: target.tl.row - 1, col: target.tl.col - 1 } as any,
                   br: target.br as any,
