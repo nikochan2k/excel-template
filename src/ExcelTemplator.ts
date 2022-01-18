@@ -10,11 +10,34 @@ interface CellIndex {
   row: number;
   col: number;
 }
-interface Target {
+class Target {
   tl: CellIndex;
   br: CellIndex;
-  text?: string;
+  widthMap: Map<number, number>;
+  heightMap: Map<number, number>;
+
+  get width() {
+    return Array.from(this.widthMap.values()).reduce(
+      (prev, curr) => prev + curr
+    );
+  }
+
+  get height() {
+    return Array.from(this.heightMap.values()).reduce(
+      (prev, curr) => prev + curr
+    );
+  }
+
+  constructor(row: number, col: number, public text: string) {
+    this.tl = { row, col };
+    this.br = { row, col };
+    this.widthMap = new Map<number, number>();
+    this.heightMap = new Map<number, number>();
+  }
 }
+
+type TargetMap = { [address: string]: Target };
+type SheetMap = { [name: string]: TargetMap };
 
 interface ExcelTemplateOptions {
   forceEmbed?: boolean;
@@ -27,6 +50,7 @@ export class ExcelTemplator {
   public static readFile: (path: string) => Promise<Buffer>;
 
   private options: ExcelTemplateOptions;
+  private workbook?: Workbook;
 
   constructor(
     public xlsx: string | BinaryData,
@@ -38,8 +62,12 @@ export class ExcelTemplator {
     this.options = options;
   }
 
-  public async generate(data: any): Promise<ArrayBuffer> {
-    let buffer: ArrayBuffer | undefined;
+  private async load() {
+    if (this.workbook) {
+      return this.workbook;
+    }
+
+    let buffer: ArrayBuffer;
     if (typeof this.xlsx === "string") {
       const urlLike = this.xlsx;
       const url = new URL(urlLike);
@@ -47,56 +75,94 @@ export class ExcelTemplator {
     } else {
       buffer = await converter.toArrayBuffer(this.xlsx);
     }
+    this.workbook = new Workbook();
+    await this.workbook.xlsx.load(buffer);
+    return this.workbook;
+  }
 
-    const workbook = new Workbook();
-    await workbook.xlsx.load(buffer);
-    outer: for (const ws of workbook.worksheets) {
-      const targetMap: { [key: string]: Target } = {};
-      const lastRow = ws.lastRow as Row;
+  public async parse() {
+    const workbook = await this.load();
+    const sheetMap: SheetMap = {};
+    for (const ws of workbook.worksheets) {
+      const targetMap: TargetMap = {};
+      sheetMap[ws.name] = targetMap;
+      const lastColumn = ws.lastColumn as Column;
+      const widthMap = new Map<number, number>();
       for (
-        let row = 1, endRow = lastRow?.number as number;
-        row <= endRow;
-        row++
+        let c = 1, endColumn = lastColumn?.number ?? 1;
+        c <= endColumn;
+        c++
       ) {
-        const lastColumn = ws.lastColumn as Column;
+        const col = ws.getColumn(c);
+        widthMap.set(c, col.width ?? ws.properties.defaultColWidth ?? 8.38);
+      }
+
+      const lastRow = ws.lastRow as Row;
+      for (let r = 1, endRow = lastRow?.number ?? 1; r <= endRow; r++) {
+        const row = ws.getRow(r);
         for (
-          let col = 1, endColumn = lastColumn?.number as number;
-          col <= endColumn;
-          col++
+          let c = 1, endColumn = lastColumn?.number ?? 1;
+          c <= endColumn;
+          c++
         ) {
-          const cell = ws.getCell(row, col);
-          const key = cell.master.address;
+          const cell = ws.getCell(r, c);
+          const address = cell.master.address;
           const text = cell.text;
-          let target = targetMap[key];
+          let target = targetMap[address];
           if (target) {
-            target.br = { row, col };
+            target.br = { row: r, col: c };
           } else {
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            target = { tl: { row, col }, br: { row, col } };
-            targetMap[key] = target;
+            target = new Target(r, c, text);
+            targetMap[address] = target;
           }
-          if (!target.text) {
-            try {
-              const executor = template(text);
-              target.text = executor(data);
-            } catch {
-              target.text = this.options.debug ? text : "";
-            }
-          }
+          target.widthMap.set(c, widthMap.get(c) ?? 8.38);
+          target.heightMap.set(r, row.height);
         }
+      }
+    }
+
+    return sheetMap;
+  }
+
+  public async generate(data: any, sheetMap?: SheetMap): Promise<ArrayBuffer> {
+    if (!sheetMap) {
+      sheetMap = await this.parse();
+    }
+
+    const workbook = await this.load();
+    for (const ws of workbook.worksheets) {
+      const targetMap = sheetMap[ws.name];
+      if (!targetMap) {
+        continue;
       }
 
       for (const [address, target] of Object.entries(targetMap)) {
-        const text = target.text || "";
+        /*
+        const obj: any = {};
+        obj.tl = target.tl;
+        obj.br = target.br;
+        obj.width = target.width;
+        obj.height = target.height;
+        obj.text = target.text;
+        console.log(obj);
+        */
+
+        let text: string;
+        try {
+          const executor = template(target.text);
+          text = executor(data);
+        } catch {
+          text = this.options.debug ? target.text : "";
+        }
         const cell = ws.getCell(address);
         try {
           if (URL_REGEXP.test(text)) {
             const url = new URL(text);
             if (this.options.forceEmbed || url.hash === "#embed") {
               const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
-              console.log(res);
               let extension: "jpeg" | "png" | "gif";
               if (!res) {
                 extension = "png";
@@ -136,7 +202,9 @@ export class ExcelTemplator {
       }
     }
 
-    return workbook.xlsx.writeBuffer();
+    const buffer = await workbook.xlsx.writeBuffer();
+    delete this.workbook;
+    return buffer;
   }
 
   private async fetchURL(url: URL): Promise<ArrayBuffer | Buffer> {
