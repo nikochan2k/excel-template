@@ -2,37 +2,51 @@ import { Column, Row, Workbook } from "exceljs";
 import { template } from "lodash";
 import { BinaryData, Converter, dataUrlToBase64 } from "univ-conv";
 
-const EXPR_REGEXP = /<%[^%]+%>/;
+const EXPR_REGEXP = /<%=([^%]+)%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
 const IMAGE_EXTENSIONS = /^(jpg|jpeg|png|gif)$/i;
 
 interface CellIndex {
-  row: number;
   col: number;
+  row: number;
 }
 class Target {
-  tl: CellIndex;
-  br: CellIndex;
-  widthMap: Map<number, number>;
-  heightMap: Map<number, number>;
+  public br: CellIndex;
+  ext?: { width: number; height: number };
+  public heightMap: Map<number, number>;
+  public tl: CellIndex;
+  public widthMap: Map<number, number>;
 
-  get width() {
-    return Array.from(this.widthMap.values()).reduce(
-      (prev, curr) => prev + curr
-    );
+  constructor(row: number, col: number, public expr: string) {
+    this.tl = { row, col };
+    this.br = { row, col };
+    this.widthMap = new Map<number, number>();
+    this.heightMap = new Map<number, number>();
   }
 
-  get height() {
+  public get height() {
     return Array.from(this.heightMap.values()).reduce(
       (prev, curr) => prev + curr
     );
   }
 
-  constructor(row: number, col: number, public text: string) {
-    this.tl = { row, col };
-    this.br = { row, col };
-    this.widthMap = new Map<number, number>();
-    this.heightMap = new Map<number, number>();
+  public get val(): string | undefined {
+    if (!this.expr) {
+      return undefined;
+    }
+
+    const arr = EXPR_REGEXP.exec(this.expr);
+    if (!arr) {
+      return undefined;
+    }
+
+    return arr[1]?.trim();
+  }
+
+  public get width() {
+    return Array.from(this.widthMap.values()).reduce(
+      (prev, curr) => prev + curr
+    );
   }
 }
 
@@ -40,17 +54,41 @@ type TargetMap = { [address: string]: Target };
 type SheetMap = { [name: string]: TargetMap };
 
 interface ExcelTemplateOptions {
-  forceEmbed?: boolean;
   debug?: boolean;
+  forceEmbed?: boolean;
 }
 
 const converter = new Converter();
+const MDW = 5.6;
+
+export function fit(target: Target, width: number, height: number) {
+  if (!width || !height) {
+    return undefined;
+  }
+
+  let ratio = 1;
+  if (target.width < width) {
+    ratio = target.width / width;
+  }
+  if (target.height < height) {
+    const tmp = target.height / height;
+    if (tmp < ratio) {
+      ratio = tmp;
+    }
+  }
+  if (ratio < 1) {
+    width = width * ratio;
+    height = height * ratio;
+  }
+
+  return { width, height };
+}
 
 export class ExcelTemplator {
-  public static readFile: (path: string) => Promise<Buffer>;
-
   private options: ExcelTemplateOptions;
   private workbook?: Workbook;
+
+  public static readFile: (path: string) => Promise<Buffer>;
 
   constructor(
     public xlsx: string | BinaryData,
@@ -62,22 +100,97 @@ export class ExcelTemplator {
     this.options = options;
   }
 
-  private async load() {
-    if (this.workbook) {
-      return this.workbook;
+  public async generate(data: any, sheetMap?: SheetMap): Promise<ArrayBuffer> {
+    if (!sheetMap) {
+      sheetMap = await this.parse();
     }
 
-    let buffer: ArrayBuffer;
-    if (typeof this.xlsx === "string") {
-      const urlLike = this.xlsx;
-      const url = new URL(urlLike);
-      buffer = await this.fetchURL(url);
-    } else {
-      buffer = await converter.toArrayBuffer(this.xlsx);
+    const workbook = await this.load();
+    for (const ws of workbook.worksheets) {
+      const targetMap = sheetMap[ws.name];
+      if (!targetMap) {
+        continue;
+      }
+
+      for (const [address, target] of Object.entries(targetMap)) {
+        /*
+        const obj: any = {};
+        obj.tl = target.tl;
+        obj.br = target.br;
+        obj.width = target.width;
+        obj.height = target.height;
+        obj.text = target.expr;
+        console.log(obj);
+        */
+
+        let text: string;
+        try {
+          const executor = template(target.expr);
+          text = executor(data);
+        } catch {
+          text = this.options.debug ? target.expr : "";
+        }
+        const cell = ws.getCell(address);
+        try {
+          if (URL_REGEXP.test(text)) {
+            const url = new URL(text);
+            if (this.options.forceEmbed || url.hash === "#embed") {
+              const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
+              let extension: "jpeg" | "png" | "gif";
+              if (!res) {
+                extension = "png";
+              } else {
+                let ext = res[1]?.toLowerCase();
+                if (ext === "jpg" || ext === "jpeg") {
+                  extension = "jpeg";
+                } else if (ext === "gif") {
+                  extension = "gif";
+                } else {
+                  extension = "png";
+                }
+              }
+              if (IMAGE_EXTENSIONS.test(extension)) {
+                const buffer = await this.fetchURL(url);
+                const imageId = workbook.addImage({ buffer, extension });
+                if (target.ext) {
+                  ws.addImage(imageId, {
+                    tl: {
+                      row: target.tl.row - 1,
+                      col: target.tl.col - 1,
+                    } as any,
+                    ext: target.ext,
+                  });
+                } else {
+                  ws.addImage(imageId, {
+                    tl: {
+                      row: target.tl.row - 1,
+                      col: target.tl.col - 1,
+                    } as any,
+                    br: target.br as any,
+                  });
+                }
+              }
+
+              cell.value = "";
+              continue;
+            }
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+
+        const value: any = cell.value;
+        if (value.font) {
+          value.text = text;
+        } else {
+          cell.value = text;
+        }
+      }
     }
-    this.workbook = new Workbook();
-    await this.workbook.xlsx.load(buffer);
-    return this.workbook;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    delete this.workbook;
+    return buffer;
   }
 
   public async parse() {
@@ -118,93 +231,13 @@ export class ExcelTemplator {
             target = new Target(r, c, text);
             targetMap[address] = target;
           }
-          target.widthMap.set(c, widthMap.get(c) ?? 8.38);
+          target.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
           target.heightMap.set(r, row.height);
         }
       }
     }
 
     return sheetMap;
-  }
-
-  public async generate(data: any, sheetMap?: SheetMap): Promise<ArrayBuffer> {
-    if (!sheetMap) {
-      sheetMap = await this.parse();
-    }
-
-    const workbook = await this.load();
-    for (const ws of workbook.worksheets) {
-      const targetMap = sheetMap[ws.name];
-      if (!targetMap) {
-        continue;
-      }
-
-      for (const [address, target] of Object.entries(targetMap)) {
-        /*
-        const obj: any = {};
-        obj.tl = target.tl;
-        obj.br = target.br;
-        obj.width = target.width;
-        obj.height = target.height;
-        obj.text = target.text;
-        console.log(obj);
-        */
-
-        let text: string;
-        try {
-          const executor = template(target.text);
-          text = executor(data);
-        } catch {
-          text = this.options.debug ? target.text : "";
-        }
-        const cell = ws.getCell(address);
-        try {
-          if (URL_REGEXP.test(text)) {
-            const url = new URL(text);
-            if (this.options.forceEmbed || url.hash === "#embed") {
-              const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
-              let extension: "jpeg" | "png" | "gif";
-              if (!res) {
-                extension = "png";
-              } else {
-                let ext = res[1]?.toLowerCase();
-                if (ext === "jpg" || ext === "jpeg") {
-                  extension = "jpeg";
-                } else if (ext === "gif") {
-                  extension = "gif";
-                } else {
-                  extension = "png";
-                }
-              }
-              if (IMAGE_EXTENSIONS.test(extension)) {
-                const buffer = await this.fetchURL(url);
-                const imageId = workbook.addImage({ buffer, extension });
-                ws.addImage(imageId, {
-                  tl: { row: target.tl.row - 1, col: target.tl.col - 1 } as any,
-                  br: target.br as any,
-                });
-              }
-
-              cell.value = "";
-              continue;
-            }
-          }
-        } catch (e) {
-          console.warn(e);
-        }
-
-        const value: any = cell.value;
-        if (value.font) {
-          value.text = text;
-        } else {
-          cell.value = text;
-        }
-      }
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    delete this.workbook;
-    return buffer;
   }
 
   private async fetchURL(url: URL): Promise<ArrayBuffer | Buffer> {
@@ -222,5 +255,27 @@ export class ExcelTemplator {
       });
     }
     throw new Error("Unknown protocol: " + url.protocol);
+  }
+
+  private async load() {
+    if (this.workbook) {
+      return this.workbook;
+    }
+
+    let buffer: ArrayBuffer;
+    if (typeof this.xlsx === "string") {
+      const urlLike = this.xlsx;
+      const url = new URL(urlLike);
+      buffer = await this.fetchURL(url);
+    } else {
+      buffer = await converter.toArrayBuffer(this.xlsx);
+    }
+    this.workbook = new Workbook();
+    await this.workbook.xlsx.load(buffer);
+    return this.workbook;
+  }
+
+  private width2px(width: number) {
+    return Math.floor((width + Math.round(128 / MDW) / 256) * MDW);
   }
 }
