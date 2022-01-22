@@ -1,6 +1,5 @@
 import { ExcelTemplator } from "./ExcelTemplator";
 import { readFile } from "fs";
-import "isomorphic-fetch";
 
 ExcelTemplator.readFile = (path: string): Promise<Buffer> => {
   return new Promise<Buffer>((resolve, reject) => {

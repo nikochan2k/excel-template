@@ -1,6 +1,6 @@
+import { decode } from "base64-arraybuffer";
 import { Column, Row, Workbook } from "exceljs";
 import { template } from "lodash";
-import { BinaryData, Converter, dataUrlToBase64 } from "univ-conv";
 
 const EXPR_REGEXP = /<%=([^%]+)%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
@@ -59,8 +59,6 @@ interface ExcelTemplateOptions {
   forceEmbed?: boolean;
 }
 
-const converter = new Converter();
-
 export function fit(target: Target, width: number, height: number) {
   if (!width || !height) {
     return undefined;
@@ -92,7 +90,7 @@ export class ExcelTemplator {
   public static readFile: (path: string) => Promise<Buffer>;
 
   constructor(
-    public xlsx: string | BinaryData,
+    public xlsx: string | ArrayBuffer,
     options?: ExcelTemplateOptions
   ) {
     if (!options) options = {};
@@ -249,11 +247,8 @@ export class ExcelTemplator {
     } else if (proto === "file:") {
       return ExcelTemplator.readFile(url.pathname);
     } else if (proto === "data:") {
-      const base64 = dataUrlToBase64(url.href);
-      return converter.toArrayBuffer({
-        encoding: "Base64",
-        value: base64,
-      });
+      const base64 = url.href.substring(url.href.indexOf(",") + 1);
+      return decode(base64);
     }
     throw new Error("Unknown protocol: " + url.protocol);
   }
@@ -269,7 +264,7 @@ export class ExcelTemplator {
       const url = new URL(urlLike);
       buffer = await this.fetchURL(url);
     } else {
-      buffer = await converter.toArrayBuffer(this.xlsx);
+      buffer = this.xlsx;
     }
     this.workbook = new Workbook();
     await this.workbook.xlsx.load(buffer);

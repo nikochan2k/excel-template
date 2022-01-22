@@ -4,6 +4,7 @@ import { join } from "path";
 import { pathToFileURL } from "url";
 import { fit } from "../ExcelTemplator";
 import { ExcelTemplator } from "../index";
+import "isomorphic-fetch";
 
 test("test1", async () => {
   const path = join(__dirname, "test1.xlsx");
