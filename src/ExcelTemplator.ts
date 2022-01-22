@@ -1,4 +1,4 @@
-import { Column, Font, Row, Workbook } from "exceljs";
+import { Column, Row, Workbook } from "exceljs";
 import { template } from "lodash";
 import { BinaryData, Converter, dataUrlToBase64 } from "univ-conv";
 
@@ -16,14 +16,9 @@ class Target {
   public heightMap: Map<number, number>;
   public tl: CellIndex;
   public widthMap: Map<number, number>;
-  public px_0_10pt = 7.2; // default
 
-  constructor(
-    row: number,
-    col: number,
-    public expr: string,
-    public font: Partial<Font>
-  ) {
+  // default
+  constructor(row: number, col: number, public expr: string) {
     this.tl = { row, col };
     this.br = { row, col };
     this.widthMap = new Map<number, number>();
@@ -93,6 +88,7 @@ export class ExcelTemplator {
   private options: ExcelTemplateOptions;
   private workbook?: Workbook;
 
+  public static PX_0_10PT = 7.2;
   public static readFile: (path: string) => Promise<Buffer>;
 
   constructor(
@@ -125,7 +121,6 @@ export class ExcelTemplator {
         obj.width = target.width;
         obj.height = target.height;
         obj.text = target.expr;
-        obj.font = target.px_0_10pt;
         console.log(obj);
         */
 
@@ -234,17 +229,10 @@ export class ExcelTemplator {
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            target = new Target(r, c, text, cell.font);
+            target = new Target(r, c, text);
             targetMap[address] = target;
           }
-          target.widthMap.set(
-            c,
-            this.width2px(
-              widthMap.get(c) ?? 8.38,
-              target.px_0_10pt,
-              target.font?.size
-            )
-          );
+          target.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
           target.heightMap.set(r, (row.height * 96) / 72);
         }
       }
@@ -288,8 +276,8 @@ export class ExcelTemplator {
     return this.workbook;
   }
 
-  private width2px(width: number, px_0_10pt: number, fontSize = 11) {
-    const zeroWidth = (fontSize * px_0_10pt) / 10;
+  private width2px(width: number) {
+    const zeroWidth = ExcelTemplator.PX_0_10PT;
     const pad = Math.round((zeroWidth + 1) / 4) * 2 + 1;
     const zPad = zeroWidth + pad;
     return width < 1 ? width * zPad : width * zeroWidth + pad;
