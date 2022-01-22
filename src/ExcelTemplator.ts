@@ -1,4 +1,4 @@
-import { Column, Row, Workbook } from "exceljs";
+import { Column, Font, Row, Workbook } from "exceljs";
 import { template } from "lodash";
 import { BinaryData, Converter, dataUrlToBase64 } from "univ-conv";
 
@@ -16,8 +16,14 @@ class Target {
   public heightMap: Map<number, number>;
   public tl: CellIndex;
   public widthMap: Map<number, number>;
+  public px_0_10pt = 7.2; // default
 
-  constructor(row: number, col: number, public expr: string) {
+  constructor(
+    row: number,
+    col: number,
+    public expr: string,
+    public font: Partial<Font>
+  ) {
     this.tl = { row, col };
     this.br = { row, col };
     this.widthMap = new Map<number, number>();
@@ -59,7 +65,6 @@ interface ExcelTemplateOptions {
 }
 
 const converter = new Converter();
-const MDW = 5.6;
 
 export function fit(target: Target, width: number, height: number) {
   if (!width || !height) {
@@ -120,6 +125,7 @@ export class ExcelTemplator {
         obj.width = target.width;
         obj.height = target.height;
         obj.text = target.expr;
+        obj.font = target.px_0_10pt;
         console.log(obj);
         */
 
@@ -220,19 +226,26 @@ export class ExcelTemplator {
         ) {
           const cell = ws.getCell(r, c);
           const address = cell.master.address;
-          const text = cell.text;
           let target = targetMap[address];
           if (target) {
             target.br = { row: r, col: c };
           } else {
+            const text = cell.text;
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            target = new Target(r, c, text);
+            target = new Target(r, c, text, cell.font);
             targetMap[address] = target;
           }
-          target.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
-          target.heightMap.set(r, row.height);
+          target.widthMap.set(
+            c,
+            this.width2px(
+              widthMap.get(c) ?? 8.38,
+              target.px_0_10pt,
+              target.font.size
+            )
+          );
+          target.heightMap.set(r, (row.height * 96) / 72);
         }
       }
     }
@@ -275,7 +288,13 @@ export class ExcelTemplator {
     return this.workbook;
   }
 
-  private width2px(width: number) {
-    return Math.floor((width + Math.round(128 / MDW) / 256) * MDW);
+  private width2px(width: number, px_0_10pt: number, fontSize?: number) {
+    if (!fontSize) {
+      fontSize = 11;
+    }
+    const zeroWidth = (fontSize * px_0_10pt) / 10;
+    const pad = Math.round((zeroWidth + 1) / 4) * 2 + 1;
+    const zPad = zeroWidth + pad;
+    return width < 1 ? width * zPad : width * zeroWidth + pad;
   }
 }
