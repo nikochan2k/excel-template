@@ -88,7 +88,7 @@ export class ExcelTemplator {
   private options: ExcelTemplateOptions;
   private workbook?: Workbook;
 
-  public static PX_0_10PT = 7.2;
+  public static BASE_WIDTH = 7.9;
   public static readFile: (path: string) => Promise<Buffer>;
 
   constructor(
@@ -277,9 +277,9 @@ export class ExcelTemplator {
   }
 
   private width2px(width: number) {
-    const zeroWidth = ExcelTemplator.PX_0_10PT;
-    const pad = Math.round((zeroWidth + 1) / 4) * 2 + 1;
-    const zPad = zeroWidth + pad;
-    return width < 1 ? width * zPad : width * zeroWidth + pad;
+    const baseWidth = ExcelTemplator.BASE_WIDTH;
+    const pad = Math.round((baseWidth + 1) / 4) * 2 + 1;
+    const zPad = baseWidth + pad;
+    return width < 1 ? width * zPad : width * baseWidth + pad;
   }
 }
