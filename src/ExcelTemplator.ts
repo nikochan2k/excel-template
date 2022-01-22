@@ -242,7 +242,7 @@ export class ExcelTemplator {
             this.width2px(
               widthMap.get(c) ?? 8.38,
               target.px_0_10pt,
-              target.font.size
+              target.font?.size
             )
           );
           target.heightMap.set(r, (row.height * 96) / 72);
@@ -288,10 +288,7 @@ export class ExcelTemplator {
     return this.workbook;
   }
 
-  private width2px(width: number, px_0_10pt: number, fontSize?: number) {
-    if (!fontSize) {
-      fontSize = 11;
-    }
+  private width2px(width: number, px_0_10pt: number, fontSize = 11) {
     const zeroWidth = (fontSize * px_0_10pt) / 10;
     const pad = Math.round((zeroWidth + 1) / 4) * 2 + 1;
     const zPad = zeroWidth + pad;
