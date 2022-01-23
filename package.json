@@ -1,6 +1,6 @@
 {
   "name": "excel-templator",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Excel templator",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
