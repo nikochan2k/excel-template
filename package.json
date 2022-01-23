@@ -2,6 +2,7 @@
   "name": "excel-templator",
   "version": "0.4.1",
   "description": "Excel templator",
+  "browser": "bin/index-browser.js",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "typings": "lib/index.d.ts",

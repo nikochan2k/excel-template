@@ -1,8 +1,6 @@
 module.exports = {
   mode: "production",
-  entry: {
-    index: "./src/index-browser.ts",
-  },
+  entry: ["./src/index-browser.ts"],
   output: {
     filename: "excel-templator.js",
     path: __dirname + "/dist",

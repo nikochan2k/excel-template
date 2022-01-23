@@ -13,7 +13,7 @@
   "data1": "fuga",
   "data2": "hoge",
   "data3": "foo",
-  "data4": "http://localhost:8080/src/__tests__/test.jpg#embed"
+  "data4": "http://127.0.0.1:8080/src/__tests__/test.jpg#embed"
 }
     </textarea
       >
@@ -41,7 +41,8 @@
         if (!file.name.endsWith(".xlsx")) {
           return;
         }
-        const template = new ExcelTemplator(file);
+        const fetcher = new BrowserFetcher();
+        const template = new ExcelTemplator(file, fetcher);
         const buffer = await template.generate(data);
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
