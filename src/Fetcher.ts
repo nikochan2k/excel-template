@@ -1,7 +1,7 @@
 export interface Fetcher {
-  readBlob: (url: string) => Promise<Buffer>;
-  readData: (url: string) => Promise<Buffer>;
-  readFile: (url: string) => Promise<Buffer>;
-  readHttp: (url: string) => Promise<Buffer>;
-  readHttps: (url: string) => Promise<Buffer>;
+  readBlob: (url: string) => Promise<ArrayBuffer>;
+  readData: (url: string) => Promise<ArrayBuffer>;
+  readFile: (url: string) => Promise<ArrayBuffer>;
+  readHttp: (url: string) => Promise<ArrayBuffer>;
+  readHttps: (url: string) => Promise<ArrayBuffer>;
 }

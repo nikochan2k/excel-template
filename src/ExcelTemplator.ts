@@ -89,7 +89,7 @@ export class ExcelTemplator {
   public static BASE_WIDTH = 7.9;
 
   constructor(
-    public xlsx: string | Buffer,
+    public xlsx: string | ArrayBuffer,
     private fetcher: Fetcher,
     options?: ExcelTemplateOptions
   ) {
@@ -99,7 +99,7 @@ export class ExcelTemplator {
     this.options = options;
   }
 
-  public async generate(data: any, sheetMap?: SheetMap): Promise<Buffer> {
+  public async generate(data: any, sheetMap?: SheetMap): Promise<ArrayBuffer> {
     if (!sheetMap) {
       sheetMap = await this.parse();
     }
@@ -238,7 +238,7 @@ export class ExcelTemplator {
     return sheetMap;
   }
 
-  private async fetch(url: string): Promise<Buffer> {
+  private async fetch(url: string): Promise<ArrayBuffer> {
     if (url.startsWith("https:")) {
       return this.fetcher.readHttps(url);
     } else if (url.startsWith("http:")) {
@@ -258,7 +258,7 @@ export class ExcelTemplator {
       return this.workbook;
     }
 
-    let buffer: Buffer;
+    let buffer: ArrayBuffer;
     if (typeof this.xlsx === "string") {
       const url = this.xlsx;
       buffer = await this.fetch(url);
