@@ -1,7 +1,7 @@
 import { decode } from "base64-arraybuffer";
 import { readFile } from "fs";
 import * as http from "http";
-import * as https from "http";
+import * as https from "https";
 import { fileURLToPath } from "url";
 import { Fetcher } from "./Fetcher";
 
