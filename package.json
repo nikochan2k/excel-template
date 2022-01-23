@@ -1,8 +1,7 @@
 {
   "name": "excel-templator",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Excel templator",
-  "browser": "lib/index-browser.js",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "typings": "lib/index.d.ts",
@@ -60,7 +59,6 @@
     "@types/node": "^17.0.9",
     "http-server": "^14.1.0",
     "image-size": "^1.0.1",
-    "isomorphic-fetch": "^1.7.0",
     "jest": "^27.4.7",
     "npm-run-all": "^4.1.5",
     "rimraf": "^3.0.2",

@@ -4,12 +4,12 @@ import { join } from "path";
 import { pathToFileURL } from "url";
 import { fit } from "../ExcelTemplator";
 import { ExcelTemplator } from "../index";
-import "isomorphic-fetch";
+import { NodeFetcher } from "../NodeFetcher";
 
 test("test1", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplator(url.href);
+  const template = new ExcelTemplator(url.href, new NodeFetcher());
   const ab = await template.generate({
     data1: "fuga",
     data2: "hoge",
@@ -24,7 +24,7 @@ test("test1", async () => {
 test("test2", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplator(url.href);
+  const template = new ExcelTemplator(url.href, new NodeFetcher());
   const imgPath = join(__dirname, "test.jpg");
   const imgUrl = pathToFileURL(imgPath);
   imgUrl.hash = "#embed";
@@ -56,7 +56,7 @@ test("test2", async () => {
 test("test3", async () => {
   const path = join(__dirname, "test1.xlsx");
   const url = pathToFileURL(path);
-  const template = new ExcelTemplator(url.href);
+  const template = new ExcelTemplator(url.href, new NodeFetcher());
   const imgPath = join(__dirname, "test.jpg");
   const imgUrl = pathToFileURL(imgPath);
   const ab = await template.generate({

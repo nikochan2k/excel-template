@@ -1,6 +1,6 @@
-import { decode } from "base64-arraybuffer";
 import { Column, Row, Workbook } from "exceljs";
 import { template } from "lodash";
+import { Fetcher } from "./Fetcher";
 
 const EXPR_REGEXP = /<%=([^%]+)%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
@@ -87,10 +87,10 @@ export class ExcelTemplator {
   private workbook?: Workbook;
 
   public static BASE_WIDTH = 7.9;
-  public static readFile: (path: string) => Promise<Buffer>;
 
   constructor(
     public xlsx: string | ArrayBuffer,
+    private fetcher: Fetcher,
     options?: ExcelTemplateOptions
   ) {
     if (!options) options = {};
@@ -132,8 +132,7 @@ export class ExcelTemplator {
         const cell = ws.getCell(address);
         try {
           if (URL_REGEXP.test(text)) {
-            const url = new URL(text);
-            if (this.options.forceEmbed || url.hash === "#embed") {
+            if (this.options.forceEmbed || text.endsWith("#embed")) {
               const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
               let extension: "jpeg" | "png" | "gif";
               if (!res) {
@@ -149,7 +148,7 @@ export class ExcelTemplator {
                 }
               }
               if (IMAGE_EXTENSIONS.test(extension)) {
-                const buffer = await this.fetchURL(url);
+                const buffer = await this.fetch(text);
                 const imageId = workbook.addImage({ buffer, extension });
                 if (target.ext) {
                   ws.addImage(imageId, {
@@ -239,18 +238,19 @@ export class ExcelTemplator {
     return sheetMap;
   }
 
-  private async fetchURL(url: URL): Promise<ArrayBuffer | Buffer> {
-    const proto = url.protocol;
-    if (proto === "http:" || proto === "https:" || proto === "blob:") {
-      const fetched = await fetch(url.href);
-      return fetched.arrayBuffer();
-    } else if (proto === "file:") {
-      return ExcelTemplator.readFile(url.pathname);
-    } else if (proto === "data:") {
-      const base64 = url.href.substring(url.href.indexOf(",") + 1);
-      return decode(base64);
+  private async fetch(url: string): Promise<ArrayBuffer> {
+    if (url.startsWith("https:")) {
+      return this.fetcher.readHttps(url);
+    } else if (url.startsWith("http:")) {
+      return this.fetcher.readHttp(url);
+    } else if (url.startsWith("blob:")) {
+      return this.fetcher.readBlob(url);
+    } else if (url.startsWith("file:")) {
+      return this.fetcher.readFile(url);
+    } else if (url.startsWith("data:")) {
+      return this.fetcher.readData(url);
     }
-    throw new Error("Unknown protocol: " + url.protocol);
+    throw new Error("Unknown protocol: " + url.substring(0, 10));
   }
 
   private async load() {
@@ -260,9 +260,8 @@ export class ExcelTemplator {
 
     let buffer: ArrayBuffer;
     if (typeof this.xlsx === "string") {
-      const urlLike = this.xlsx;
-      const url = new URL(urlLike);
-      buffer = await this.fetchURL(url);
+      const url = this.xlsx;
+      buffer = await this.fetch(url);
     } else {
       buffer = this.xlsx;
     }
