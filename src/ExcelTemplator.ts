@@ -10,9 +10,8 @@ interface CellIndex {
   col: number;
   row: number;
 }
-class Target {
+class TargetBuilder {
   public br: CellIndex;
-  ext?: { width: number; height: number };
   public heightMap: Map<number, number>;
   public tl: CellIndex;
   public widthMap: Map<number, number>;
@@ -49,8 +48,30 @@ class Target {
       (prev, curr) => prev + curr
     );
   }
+
+  public build(): Target {
+    return {
+      br: this.br,
+      tl: this.tl,
+      height: this.height,
+      width: this.width,
+      val: this.val,
+      expr: this.expr,
+    };
+  }
 }
 
+interface Target {
+  br: CellIndex;
+  tl: CellIndex;
+  ext?: { width: number; height: number };
+  height: number;
+  width: number;
+  val?: string;
+  expr: string;
+}
+
+type TargetBuilderMap = { [address: string]: TargetBuilder };
 type TargetMap = { [address: string]: Target };
 type SheetMap = { [name: string]: TargetMap };
 
@@ -197,6 +218,8 @@ export class ExcelTemplator {
     for (const ws of workbook.worksheets) {
       const targetMap: TargetMap = {};
       sheetMap[ws.name] = targetMap;
+
+      const targetBuilderMap: TargetBuilderMap = {};
       const lastColumn = ws.lastColumn as Column;
       const widthMap = new Map<number, number>();
       for (
@@ -218,20 +241,24 @@ export class ExcelTemplator {
         ) {
           const cell = ws.getCell(r, c);
           const address = cell.master.address;
-          let target = targetMap[address];
-          if (target) {
-            target.br = { row: r, col: c };
+          let targetBuilder = targetBuilderMap[address];
+          if (targetBuilder) {
+            targetBuilder.br = { row: r, col: c };
           } else {
             const text = cell.text;
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            target = new Target(r, c, text);
-            targetMap[address] = target;
+            targetBuilder = new TargetBuilder(r, c, text);
+            targetBuilderMap[address] = targetBuilder;
           }
-          target.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
-          target.heightMap.set(r, (row.height * 96) / 72);
+          targetBuilder.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
+          targetBuilder.heightMap.set(r, (row.height * 96) / 72);
         }
+      }
+
+      for (const [address, targetBuilder] of Object.entries(targetBuilderMap)) {
+        targetMap[address] = targetBuilder.build();
       }
     }
 
