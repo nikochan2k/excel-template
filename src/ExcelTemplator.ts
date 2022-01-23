@@ -1,5 +1,5 @@
 import { Column, Row, Workbook } from "exceljs";
-import { template } from "lodash";
+import template from "lodash/template";
 import { Fetcher } from "./Fetcher";
 
 const EXPR_REGEXP = /<%=([^%]+)%>/;
