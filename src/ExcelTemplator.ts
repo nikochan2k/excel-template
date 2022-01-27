@@ -110,7 +110,7 @@ export class ExcelTemplator {
   public static BASE_WIDTH = 7.9;
 
   constructor(
-    public xlsx: string | ArrayBuffer,
+    public xlsx: string | ArrayBuffer | Workbook,
     private fetcher: Fetcher,
     options?: ExcelTemplateOptions
   ) {
@@ -289,8 +289,11 @@ export class ExcelTemplator {
     if (typeof this.xlsx === "string") {
       const url = this.xlsx;
       buffer = await this.fetch(url);
+    } else if (typeof (this.xlsx as ArrayBuffer).byteLength === "number") {
+      buffer = this.xlsx as ArrayBuffer;
     } else {
-      buffer = this.xlsx;
+      this.workbook = this.xlsx as Workbook;
+      return this.workbook;
     }
     this.workbook = new Workbook();
     await this.workbook.xlsx.load(buffer);
