@@ -1,12 +1,12 @@
 var exceljs;
 if (typeof document !== "undefined") {
-  exceljs = require("exceljs/dist/es5/exceljs.browser");
+  exceljs = require("exceljs/lib/exceljs.browser.js");
 } else if (
   typeof navigator != "undefined" &&
   navigator.product == "ReactNative"
 ) {
-  exceljs = require("exceljs/dist/es5/exceljs.bare");
+  exceljs = require("exceljs/lib/exceljs.bare.js");
 } else {
-  exceljs = require("exceljs/dist/es5/exceljs.nodejs");
+  exceljs = require("exceljs/lib/exceljs.nodejs.js");
 }
 module.exports = exceljs;
