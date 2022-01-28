@@ -78,9 +78,8 @@ type SheetMap = { [name: string]: TargetMap };
 
 interface ResizeOption {
   fetch: (url: string) => Promise<ArrayBuffer>;
-  height: number;
+  target: Target;
   url: string;
-  width: number;
 }
 interface ExcelTemplateOptions {
   debug?: boolean;
@@ -183,8 +182,7 @@ export class ExcelTemplator {
                     buffer = await this.options.resize({
                       fetch: this.fetch,
                       url: text,
-                      width: target.ext.width,
-                      height: target.ext.height,
+                      target,
                     });
                   } else {
                     buffer = await this.fetch(text);
