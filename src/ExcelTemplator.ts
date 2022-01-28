@@ -79,6 +79,7 @@ type SheetMap = { [name: string]: TargetMap };
 interface ExcelTemplateOptions {
   debug?: boolean;
   forceEmbed?: boolean;
+  resize?: (buffer: ArrayBuffer, width: number, height: number) => ArrayBuffer;
 }
 
 export function fit(target: Target, width: number, height: number) {
@@ -170,9 +171,16 @@ export class ExcelTemplator {
                 }
               }
               if (IMAGE_EXTENSIONS.test(extension)) {
-                const buffer = await this.fetch(text);
-                const imageId = workbook.addImage({ buffer, extension });
+                let buffer = await this.fetch(text);
                 if (target.ext) {
+                  if (this.options.resize) {
+                    buffer = this.options.resize(
+                      buffer,
+                      target.ext.width,
+                      target.ext.height
+                    );
+                  }
+                  const imageId = workbook.addImage({ buffer, extension });
                   ws.addImage(imageId, {
                     tl: {
                       row: target.tl.row - 1,
@@ -181,6 +189,7 @@ export class ExcelTemplator {
                     ext: target.ext,
                   });
                 } else {
+                  const imageId = workbook.addImage({ buffer, extension });
                   ws.addImage(imageId, {
                     tl: {
                       row: target.tl.row - 1,
