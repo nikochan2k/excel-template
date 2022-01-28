@@ -79,7 +79,11 @@ type SheetMap = { [name: string]: TargetMap };
 interface ExcelTemplateOptions {
   debug?: boolean;
   forceEmbed?: boolean;
-  resize?: (buffer: ArrayBuffer, width: number, height: number) => ArrayBuffer;
+  resize?: (
+    buffer: ArrayBuffer,
+    width: number,
+    height: number
+  ) => Promise<ArrayBuffer>;
 }
 
 export function fit(target: Target, width: number, height: number) {
@@ -174,7 +178,7 @@ export class ExcelTemplator {
                 let buffer = await this.fetch(text);
                 if (target.ext) {
                   if (this.options.resize) {
-                    buffer = this.options.resize(
+                    buffer = await this.options.resize(
                       buffer,
                       target.ext.width,
                       target.ext.height
