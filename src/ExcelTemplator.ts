@@ -1,7 +1,7 @@
-// import { Column, Row, Workbook } from "exceljs";
-import { Column, Row, Workbook } from "exceljs";
+import type { Column, Row, Workbook } from "exceljs";
 import template from "lodash/template";
 import { Fetcher } from "./Fetcher";
+const exceljs = require("./exceljs");
 
 const EXPR_REGEXP = /<%=([^%]+)%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
@@ -296,7 +296,7 @@ export class ExcelTemplator {
       this.workbook = this.xlsx as Workbook;
       return this.workbook;
     }
-    this.workbook = new Workbook();
+    this.workbook = new exceljs.Workbook() as Workbook;
     await this.workbook.xlsx.load(buffer);
     return this.workbook;
   }
