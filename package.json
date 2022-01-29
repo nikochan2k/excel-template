@@ -50,7 +50,7 @@
     "preset": "ts-jest"
   },
   "dependencies": {
-    "base64-arraybuffer": "^1.0.1",
+    "base64-arraybuffer": "^1.0.2",
     "exceljs": "^4.3.0",
     "tslib": "^2.3.1"
   },
