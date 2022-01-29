@@ -1,4 +1,4 @@
-import type { Column, Row, Workbook } from "exceljs";
+import type { Column, Row, Workbook, WorkbookModel } from "exceljs";
 import template from "lodash/template";
 import { Fetcher } from "./Fetcher";
 const exceljs = require("./exceljs");
@@ -85,6 +85,37 @@ interface ExcelTemplateOptions {
   debug?: boolean;
   forceEmbed?: boolean;
   resize?: (options: ResizeOption) => Promise<ArrayBuffer>;
+}
+
+export function serialize(workbook: Workbook) {
+  const model = workbook.model;
+  delete (model as any)._sheet;
+  for (const sheet of model.worksheets) {
+    const s = sheet as any;
+    s.mergeCells = s.merges;
+    delete s.merges;
+  }
+  const json = JSON.stringify(model, (key, value) => {
+    if (key === "media" || key === "_media") {
+      return [];
+    }
+    return value;
+  });
+  return json;
+}
+
+export function deserialize(json: string) {
+  const model: WorkbookModel = JSON.parse(json, (key, value) => {
+    if (key === "media" || key === "_media") {
+      return [];
+    }
+    return /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/.test(value)
+      ? new Date(value)
+      : value;
+  });
+  const workbook: Workbook = new exceljs.Workbook();
+  workbook.model = model;
+  return workbook;
 }
 
 export function fit(target: Target, width: number, height: number) {

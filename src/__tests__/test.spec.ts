@@ -1,11 +1,12 @@
+import type { Workbook } from "exceljs";
 import { writeFileSync } from "fs";
 import sizeOf from "image-size";
 import { join } from "path";
 import { pathToFileURL } from "url";
-import { Workbook, WorkbookModel } from "../exceljs";
-import { fit } from "../ExcelTemplator";
+import { deserialize, fit, serialize } from "../ExcelTemplator";
 import { ExcelTemplator } from "../index";
 import { NodeFetcher } from "../NodeFetcher";
+const exceljs = require("../exceljs");
 
 test("test1", async () => {
   const path = join(__dirname, "test1.xlsx");
@@ -56,18 +57,11 @@ test("test2", async () => {
 
 test("test2.1", async () => {
   const path = join(__dirname, "test1.xlsx");
-  const url = pathToFileURL(path);
-  let workbook = new Workbook();
+  let workbook: Workbook = new exceljs.Workbook();
   await workbook.xlsx.readFile(path);
-  const json = JSON.stringify(workbook.model);
-  const model: WorkbookModel = JSON.parse(json, (_, value) =>
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/.test(value)
-      ? new Date(value)
-      : value
-  );
-  workbook = new Workbook();
-  workbook.model = model;
-  const template = new ExcelTemplator(url.href, new NodeFetcher());
+  const json = serialize(workbook);
+  workbook = deserialize(json);
+  const template = new ExcelTemplator(workbook, new NodeFetcher());
   const imgPath = join(__dirname, "test.jpg");
   const imgUrl = pathToFileURL(imgPath);
   imgUrl.hash = "#embed";
@@ -92,7 +86,7 @@ test("test2.1", async () => {
     sheetMap
   );
   const buffer = Buffer.from(ab);
-  const outpath = "tmp/test2_out.xlsx";
+  const outpath = "tmp/test2_1_out.xlsx";
   writeFileSync(outpath, buffer);
 });
 
