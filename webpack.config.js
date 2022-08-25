@@ -1,5 +1,6 @@
 module.exports = {
-  mode: "production",
+  mode: "development",
+  devtool: "source-map",
   entry: ["./src/index-browser.ts"],
   output: {
     filename: "excel-templator.js",
