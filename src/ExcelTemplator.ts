@@ -248,6 +248,9 @@ export class ExcelTemplator {
         }
 
         const value: any = cell.value;
+        if (!value) {
+          continue;
+        }
         if (value.font) {
           value.text = text;
         } else {
