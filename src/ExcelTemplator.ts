@@ -62,7 +62,7 @@ class TargetBuilder {
   }
 }
 
-interface Target {
+export interface Target {
   br: CellIndex;
   expr: string;
   ext?: { width: number; height: number };
@@ -73,8 +73,8 @@ interface Target {
 }
 
 type TargetBuilderMap = { [address: string]: TargetBuilder };
-type TargetMap = { [address: string]: Target };
-type SheetMap = { [name: string]: TargetMap };
+export type TargetMap = { [address: string]: Target };
+export type SheetMap = { [name: string]: TargetMap };
 
 interface ResizeOption {
   fetch: (url: string) => Promise<ArrayBuffer>;
