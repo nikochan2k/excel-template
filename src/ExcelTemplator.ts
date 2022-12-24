@@ -1,4 +1,4 @@
-import type { Column, Row, Workbook, WorkbookModel } from "exceljs";
+import type { Alignment, Column, Row, Workbook, WorkbookModel } from "exceljs";
 import template from "lodash/template";
 import { Fetcher } from "./Fetcher";
 const exceljs = require("./exceljs");
@@ -11,18 +11,39 @@ interface CellIndex {
   col: number;
   row: number;
 }
+
+type HorizontalAlign =
+  | "left"
+  | "center"
+  | "right"
+  | "fill"
+  | "justify"
+  | "centerContinuous"
+  | "distributed";
+
+type VerticalAlign = "justify" | "distributed" | "top" | "middle" | "bottom";
+
 class TargetBuilder {
   public br: CellIndex;
   public heightMap: Map<number, number>;
   public tl: CellIndex;
   public widthMap: Map<number, number>;
+  public horizontalAlign?: HorizontalAlign;
+  public verticalAlign?: VerticalAlign;
 
   // default
-  constructor(row: number, col: number, public expr: string) {
+  constructor(
+    row: number,
+    col: number,
+    public expr: string,
+    align?: Partial<Alignment>
+  ) {
     this.tl = { row, col };
     this.br = { row, col };
     this.widthMap = new Map<number, number>();
     this.heightMap = new Map<number, number>();
+    this.horizontalAlign = align?.horizontal;
+    this.verticalAlign = align?.vertical;
   }
 
   public get height() {
@@ -58,6 +79,8 @@ class TargetBuilder {
       width: this.width,
       val: this.val,
       expr: this.expr,
+      horizontalAlign: this.horizontalAlign,
+      verticalAlign: this.verticalAlign,
     };
   }
 }
@@ -70,6 +93,8 @@ export interface Target {
   tl: CellIndex;
   val?: string;
   width: number;
+  horizontalAlign?: HorizontalAlign;
+  verticalAlign?: VerticalAlign;
 }
 
 type TargetBuilderMap = { [address: string]: TargetBuilder };
@@ -137,8 +162,37 @@ export function fit(target: Target, width: number, height: number) {
     width = width * ratio;
     height = height * ratio;
   }
+  let col = target.tl.col;
+  if (target.horizontalAlign) {
+    let xOffset = 0;
+    switch (target.horizontalAlign) {
+      case "center":
+      case "centerContinuous":
+        xOffset = (target.width - width) / 2;
+        break;
+      case "right":
+        xOffset = target.width - width;
+        break;
+    }
+    const cols = target.br.col - target.tl.col + 1;
+    col = target.tl.col + (xOffset / target.width) * cols;
+  }
+  let row = target.tl.row;
+  if (target.verticalAlign) {
+    let yOffset = 0;
+    switch (target.verticalAlign) {
+      case "middle":
+        yOffset = (target.height - height) / 2;
+        break;
+      case "bottom":
+        yOffset = target.height - height;
+        break;
+    }
+    const rows = target.br.row - target.tl.row + 1;
+    row = target.tl.row + (yOffset / target.height) * rows;
+  }
 
-  return { width, height };
+  return { width, height, col, row };
 }
 
 export class ExcelTemplator {
@@ -301,7 +355,7 @@ export class ExcelTemplator {
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            targetBuilder = new TargetBuilder(r, c, text);
+            targetBuilder = new TargetBuilder(r, c, text, cell.style.alignment);
             targetBuilderMap[address] = targetBuilder;
           }
           targetBuilder.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
