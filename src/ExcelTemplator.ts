@@ -137,6 +137,7 @@ export function fit(target: Target, width: number, height: number) {
     width = width * ratio;
     height = height * ratio;
   }
+
   let col = target.tl.col;
   if (target.horizontalAlign) {
     let xOffset = 0;
@@ -149,9 +150,18 @@ export function fit(target: Target, width: number, height: number) {
         xOffset = target.width - width;
         break;
     }
-    const cols = target.br.col - target.tl.col + 1;
-    col = target.tl.col + (xOffset / target.width) * cols;
+    if (0 < xOffset) {
+      let currentWidth = 0;
+      for (let c = target.tl.col; c <= target.br.col; c++) {
+        const w = target.widthMap.get(c) ?? 0;
+        if (currentWidth <= xOffset && xOffset < currentWidth + w) {
+          col = c + (currentWidth + xOffset) / w;
+          break;
+        }
+      }
+    }
   }
+
   let row = target.tl.row;
   if (target.verticalAlign) {
     let yOffset = 0;
@@ -162,6 +172,16 @@ export function fit(target: Target, width: number, height: number) {
       case "bottom":
         yOffset = target.height - height;
         break;
+    }
+    if (0 < yOffset) {
+      let currentHeight = 0;
+      for (let r = target.tl.row; r <= target.br.row; r++) {
+        const h = target.widthMap.get(r) ?? 0;
+        if (currentHeight <= yOffset && yOffset < currentHeight + h) {
+          row = r + (currentHeight + yOffset) / h;
+          break;
+        }
+      }
     }
     const rows = target.br.row - target.tl.row + 1;
     row = target.tl.row + (yOffset / target.height) * rows;
@@ -200,16 +220,6 @@ export class ExcelTemplator {
       }
 
       for (const [address, target] of Object.entries(targetMap)) {
-        /*
-        const obj: any = {};
-        obj.tl = target.tl;
-        obj.br = target.br;
-        obj.width = target.width;
-        obj.height = target.height;
-        obj.text = target.expr;
-        console.log(obj);
-        */
-
         let text: string;
         try {
           const executor = template(target.expr);
