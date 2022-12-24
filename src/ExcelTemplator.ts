@@ -7,6 +7,11 @@ const EXPR_REGEXP = /<%=([^%]+)%>/;
 const URL_REGEXP = /^(https?|blob|data|file):/;
 const IMAGE_EXTENSIONS = /^(jpg|jpeg|png|gif)$/i;
 
+interface Size {
+  width: number;
+  height: number;
+}
+
 interface CellIndex {
   col: number;
   row: number;
@@ -84,6 +89,7 @@ interface ResizeOption {
 interface ExcelTemplateOptions {
   debug?: boolean;
   forceEmbed?: boolean;
+  getSize?: (url: string) => Promise<Size>;
   resize?: (options: ResizeOption) => Promise<ArrayBuffer>;
 }
 
@@ -120,7 +126,7 @@ export function deserialize(json: string) {
 
 export function fit(target: Target, width: number, height: number) {
   if (!width || !height) {
-    return undefined;
+    return;
   }
 
   let ratio = 1;
@@ -138,7 +144,6 @@ export function fit(target: Target, width: number, height: number) {
     height = height * ratio;
   }
 
-  let col = target.tl.col;
   if (target.horizontalAlign) {
     let xOffset = 0;
     switch (target.horizontalAlign) {
@@ -155,14 +160,13 @@ export function fit(target: Target, width: number, height: number) {
       for (let c = target.tl.col; c <= target.br.col; c++) {
         const w = target.widthMap.get(c) ?? 0;
         if (currentWidth <= xOffset && xOffset < currentWidth + w) {
-          col = c + (currentWidth + xOffset) / w;
+          target.tl.col = c + (currentWidth + xOffset) / w;
           break;
         }
       }
     }
   }
 
-  let row = target.tl.row;
   if (target.verticalAlign) {
     let yOffset = 0;
     switch (target.verticalAlign) {
@@ -178,16 +182,14 @@ export function fit(target: Target, width: number, height: number) {
       for (let r = target.tl.row; r <= target.br.row; r++) {
         const h = target.widthMap.get(r) ?? 0;
         if (currentHeight <= yOffset && yOffset < currentHeight + h) {
-          row = r + (currentHeight + yOffset) / h;
+          target.tl.row = r + (currentHeight + yOffset) / h;
           break;
         }
       }
     }
-    const rows = target.br.row - target.tl.row + 1;
-    row = target.tl.row + (yOffset / target.height) * rows;
   }
 
-  return { width, height, col, row };
+  target.ext = { width, height };
 }
 
 export class ExcelTemplator {
@@ -246,6 +248,10 @@ export class ExcelTemplator {
                 }
               }
               if (IMAGE_EXTENSIONS.test(extension)) {
+                if (this.options.getSize) {
+                  const rect = await this.options.getSize(text);
+                  fit(target, rect.width, rect.height);
+                }
                 if (target.ext) {
                   let buffer: ArrayBuffer;
                   if (this.options.resize) {

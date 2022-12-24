@@ -45,13 +45,8 @@
         const fetcher = new BrowserFetcher();
         const template = new ExcelTemplator(file, fetcher);
         const sheetMap = await template.parse();
-        console.log(sheetMap);
         const cell = sheetMap["Sheet1"]["E3"];
-        const result = fit(cell, 480, 360);
-        console.log(result);
-        cell["ext"] = { width: result.width, height: result.height };
-        cell["tl"]["col"] = result.col;
-        cell["tl"]["row"] = result.row;
+        fit(cell, 480, 360);
         const buffer = await template.generate(data, sheetMap);
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
