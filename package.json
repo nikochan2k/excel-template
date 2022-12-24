@@ -55,19 +55,19 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.2",
-    "@types/lodash": "^4.14.188",
-    "@types/node": "^18.11.9",
+    "@types/jest": "^29.2.4",
+    "@types/lodash": "^4.14.191",
+    "@types/node": "^18.11.17",
     "http-server": "^14.1.1",
     "image-size": "^1.0.2",
     "jest": "^29.3.1",
     "npm-run-all": "^4.1.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^29.0.3",
-    "ts-loader": "^9.4.1",
-    "typescript": "^4.8.4",
+    "ts-loader": "^9.4.2",
+    "typescript": "^4.9.4",
     "webpack": "^5.75.0",
-    "webpack-cli": "^4.10.0"
+    "webpack-cli": "^5.0.1"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
