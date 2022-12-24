@@ -23,13 +23,14 @@ type HorizontalAlign =
 
 type VerticalAlign = "justify" | "distributed" | "top" | "middle" | "bottom";
 
-class TargetBuilder {
+export class Target {
   public br: CellIndex;
   public heightMap: Map<number, number>;
   public tl: CellIndex;
   public widthMap: Map<number, number>;
   public horizontalAlign?: HorizontalAlign;
   public verticalAlign?: VerticalAlign;
+  public ext?: { width: number; height: number };
 
   // default
   constructor(
@@ -70,34 +71,8 @@ class TargetBuilder {
       (prev, curr) => prev + curr
     );
   }
-
-  public build(): Target {
-    return {
-      br: this.br,
-      tl: this.tl,
-      height: this.height,
-      width: this.width,
-      val: this.val,
-      expr: this.expr,
-      horizontalAlign: this.horizontalAlign,
-      verticalAlign: this.verticalAlign,
-    };
-  }
 }
 
-export interface Target {
-  br: CellIndex;
-  expr: string;
-  ext?: { width: number; height: number };
-  height: number;
-  tl: CellIndex;
-  val?: string;
-  width: number;
-  horizontalAlign?: HorizontalAlign;
-  verticalAlign?: VerticalAlign;
-}
-
-type TargetBuilderMap = { [address: string]: TargetBuilder };
 export type TargetMap = { [address: string]: Target };
 export type SheetMap = { [name: string]: TargetMap };
 
@@ -324,8 +299,6 @@ export class ExcelTemplator {
     for (const ws of workbook.worksheets) {
       const targetMap: TargetMap = {};
       sheetMap[ws.name] = targetMap;
-
-      const targetBuilderMap: TargetBuilderMap = {};
       const lastColumn = ws.lastColumn as Column;
       const widthMap = new Map<number, number>();
       for (
@@ -347,24 +320,20 @@ export class ExcelTemplator {
         ) {
           const cell = ws.getCell(r, c);
           const address = cell.master.address;
-          let targetBuilder = targetBuilderMap[address];
-          if (targetBuilder) {
-            targetBuilder.br = { row: r, col: c };
+          let target = targetMap[address];
+          if (target) {
+            target.br = { row: r, col: c };
           } else {
             const text = cell.text;
             if (!cell.isMerged && !EXPR_REGEXP.test(text)) {
               continue;
             }
-            targetBuilder = new TargetBuilder(r, c, text, cell.style.alignment);
-            targetBuilderMap[address] = targetBuilder;
+            target = new Target(r, c, text, cell.style.alignment);
+            targetMap[address] = target;
           }
-          targetBuilder.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
-          targetBuilder.heightMap.set(r, (row.height * 96) / 72);
+          target.widthMap.set(c, this.width2px(widthMap.get(c) ?? 8.38));
+          target.heightMap.set(r, (row.height * 96) / 72);
         }
-      }
-
-      for (const [address, targetBuilder] of Object.entries(targetBuilderMap)) {
-        targetMap[address] = targetBuilder.build();
       }
     }
 
