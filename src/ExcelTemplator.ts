@@ -129,23 +129,26 @@ export function fit(target: Target, width: number, height: number) {
     return;
   }
 
-  const wRatio = target.width / width;
-  const hRatio = target.height / height;
-  let ratio = Math.min(wRatio, hRatio);
-  if (1 < ratio) {
-    ratio = 1;
+  let ratio = 1;
+  if (target.width < width) {
+    ratio = target.width / width;
   }
-  width = width * ratio;
-  height = height * ratio;
+  if (target.height < height) {
+    const tmp = target.height / height;
+    if (tmp < ratio) {
+      ratio = tmp;
+    }
+  }
+  if (ratio < 1) {
+    width = width * ratio;
+    height = height * ratio;
+  }
 
   if (target.horizontalAlign) {
     let xOffset = 0;
     switch (target.horizontalAlign) {
       case "center":
       case "centerContinuous":
-      case "distributed":
-      case "fill":
-      case "justify":
         xOffset = (target.width - width) / 2;
         break;
       case "right":
@@ -157,10 +160,9 @@ export function fit(target: Target, width: number, height: number) {
       for (let c = target.tl.col; c <= target.br.col; c++) {
         const w = target.widthMap.get(c) ?? 0;
         if (currentWidth <= xOffset && xOffset < currentWidth + w) {
-          target.tl.col = c + (xOffset - currentWidth) / w;
+          target.tl.col = c + (currentWidth + xOffset) / w;
           break;
         }
-        currentWidth += w;
       }
     }
   }
@@ -169,8 +171,6 @@ export function fit(target: Target, width: number, height: number) {
     let yOffset = 0;
     switch (target.verticalAlign) {
       case "middle":
-      case "distributed":
-      case "justify":
         yOffset = (target.height - height) / 2;
         break;
       case "bottom":
@@ -182,10 +182,9 @@ export function fit(target: Target, width: number, height: number) {
       for (let r = target.tl.row; r <= target.br.row; r++) {
         const h = target.widthMap.get(r) ?? 0;
         if (currentHeight <= yOffset && yOffset < currentHeight + h) {
-          target.tl.row = r + (yOffset - currentHeight) / h;
+          target.tl.row = r + (currentHeight + yOffset) / h;
           break;
         }
-        currentHeight += h;
       }
     }
   }

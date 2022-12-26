@@ -14,8 +14,7 @@
   "data2": "hoge",
   "data3": "foo",
   "data4": "http://127.0.0.1:8080/src/__tests__/test.jpg#embed",
-  "data5": "http://127.0.0.1:8080/src/__tests__/test2.jpg#embed",
-  "data6": "http://127.0.0.1:8080/src/__tests__/test2.jpg#embed"
+  "data5": "http://127.0.0.1:8080/src/__tests__/test.jpg#embed"
 }
     </textarea
       >
@@ -46,10 +45,8 @@
         const fetcher = new BrowserFetcher();
         const template = new ExcelTemplator(file, fetcher);
         const sheetMap = await template.parse();
-        const cell1 = sheetMap["Sheet1"]["E3"];
-        fit(cell1, 480, 360);
-        const cell2 = sheetMap["Sheet1"]["B3"];
-        fit(cell2, 480, 360);
+        const cell = sheetMap["Sheet1"]["E3"];
+        fit(cell, 480, 360);
         const buffer = await template.generate(data, sheetMap);
         const blob = new Blob([buffer]);
         const url = URL.createObjectURL(blob);
