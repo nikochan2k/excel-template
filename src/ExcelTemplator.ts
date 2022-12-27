@@ -10,6 +10,7 @@ const IMAGE_EXTENSIONS = /^(jpg|jpeg|png|gif)$/i;
 interface Size {
   width: number;
   height: number;
+  fill: boolean;
 }
 
 interface CellIndex {
@@ -124,7 +125,12 @@ export function deserialize(json: string) {
   return workbook;
 }
 
-export function fit(target: Target, width: number, height: number) {
+export function fit(
+  target: Target,
+  width: number,
+  height: number,
+  fill: boolean
+) {
   if (!width || !height) {
     return;
   }
@@ -137,6 +143,10 @@ export function fit(target: Target, width: number, height: number) {
   }
   width = width * ratio;
   height = height * ratio;
+  if (fill) {
+    target.ext = { width, height };
+    return;
+  }
 
   if (target.horizontalAlign) {
     let xOffset = 0;
@@ -249,9 +259,11 @@ export class ExcelTemplator {
                 }
               }
               if (IMAGE_EXTENSIONS.test(extension)) {
+                let fill = false;
                 if (this.options.getSize) {
-                  const rect = await this.options.getSize(text);
-                  fit(target, rect.width, rect.height);
+                  const size = await this.options.getSize(text);
+                  fill = size.fill;
+                  fit(target, size.width, size.height, fill);
                 }
                 if (target.ext) {
                   let buffer: ArrayBuffer;
@@ -265,13 +277,23 @@ export class ExcelTemplator {
                     buffer = await this.fetch(text);
                   }
                   const imageId = workbook.addImage({ buffer, extension });
-                  ws.addImage(imageId, {
-                    tl: {
-                      row: target.tl.row - 1,
-                      col: target.tl.col - 1,
-                    } as any,
-                    ext: target.ext,
-                  });
+                  if (fill) {
+                    ws.addImage(imageId, {
+                      tl: {
+                        row: target.tl.row - 1,
+                        col: target.tl.col - 1,
+                      } as any,
+                      br: target.br as any,
+                    });
+                  } else {
+                    ws.addImage(imageId, {
+                      tl: {
+                        row: target.tl.row - 1,
+                        col: target.tl.col - 1,
+                      } as any,
+                      ext: target.ext,
+                    });
+                  }
                 } else {
                   const buffer = await this.fetch(text);
                   const imageId = workbook.addImage({ buffer, extension });

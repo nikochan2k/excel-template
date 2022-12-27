@@ -36,7 +36,7 @@ test("test2", async () => {
     for (const target of Object.values(targetMap)) {
       if (target.val === "data4") {
         const size = sizeOf(imgPath);
-        fit(target, size.width!, size.height!);
+        fit(target, size.width!, size.height!, false);
       }
     }
   }
@@ -71,7 +71,7 @@ test("test2.1", async () => {
     for (const target of Object.values(targetMap)) {
       if (target.val === "data4") {
         const size = sizeOf(imgPath);
-        fit(target, size.width!, size.height!);
+        fit(target, size.width!, size.height!, false);
       }
     }
   }
