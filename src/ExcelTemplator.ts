@@ -90,7 +90,7 @@ interface ResizeOption {
 interface ExcelTemplateOptions {
   debug?: boolean;
   forceEmbed?: boolean;
-  getSize?: (url: string) => Promise<Size>;
+  getSize?: (url: string, target: Target) => Promise<Size>;
   resize?: (options: ResizeOption) => Promise<ArrayBuffer>;
 }
 
@@ -243,8 +243,9 @@ export class ExcelTemplator {
         const cell = ws.getCell(address);
         try {
           if (URL_REGEXP.test(text)) {
-            if (this.options.forceEmbed || text.endsWith("#embed")) {
-              const res = /[.\/](jpg|jpeg|png|gif)/i.exec(text);
+            const url = text;
+            if (this.options.forceEmbed || url.endsWith("#embed")) {
+              const res = /[.\/](jpg|jpeg|png|gif)/i.exec(url);
               let extension: "jpeg" | "png" | "gif";
               if (!res) {
                 extension = "png";
@@ -261,7 +262,7 @@ export class ExcelTemplator {
               if (IMAGE_EXTENSIONS.test(extension)) {
                 let fill = false;
                 if (this.options.getSize) {
-                  const size = await this.options.getSize(text);
+                  const size = await this.options.getSize(url, target);
                   fill = size.fill;
                   fit(target, size.width, size.height, fill);
                 }
@@ -270,11 +271,11 @@ export class ExcelTemplator {
                   if (this.options.resize) {
                     buffer = await this.options.resize({
                       fetch: this.fetch,
-                      url: text,
+                      url,
                       target,
                     });
                   } else {
-                    buffer = await this.fetch(text);
+                    buffer = await this.fetch(url);
                   }
                   const imageId = workbook.addImage({ buffer, extension });
                   if (fill) {
@@ -295,7 +296,7 @@ export class ExcelTemplator {
                     });
                   }
                 } else {
-                  const buffer = await this.fetch(text);
+                  const buffer = await this.fetch(url);
                   const imageId = workbook.addImage({ buffer, extension });
                   ws.addImage(imageId, {
                     tl: {
